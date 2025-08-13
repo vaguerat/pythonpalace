@@ -1,0 +1,63 @@
+
+import pyCardDeck
+from pyCardDeck import Deck, deck
+from pyCardDeck.cards import PokerCard
+
+#awful card creation i gotta do this better
+suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
+ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9","10", "Jack", "Queen", "King"]
+
+cards = [PokerCard(name=f"{rank}", suit=suit, rank=rank) for suit in suits for rank in ranks]
+cards2 = list(cards)
+dekk = pyCardDeck.Deck(cards=cards2, name='THE CARDS THE CARDS THE CARDS WILL TELL', reshuffle=False)
+
+print("Dekk:", dekk.cards_left)
+discard_pile = dekk.discard(cards)
+print("Discard Pile:", discard_pile)
+trick = pyCardDeck.Deck(cards=[], name='Trick', reshuffle=False)
+print("Trick Thickness:", trick.cards_left)
+print('Last card on Trick:', [str(cards) for cards in trick._cards])
+
+#create the 6 decks of cards
+hand1, hand2, faceup1, faceup2, facedown1, facedown2, = [pyCardDeck.Deck(cards=[], reshuffle=False) for _ in range(6)]
+print("Your Hand:", hand1._cards)
+print(" ")
+
+input("PRESS ENTER TO SHUFFLE DECK AND DEAL")
+print(" ")
+dekk.shuffle()
+print("Shuffling Deck")
+print(" ")
+
+#dealing cards
+for _ in range(3):
+    D = [hand1, hand2, faceup1, faceup2, facedown1, facedown2]
+    for name in D:
+        active_card = dekk.draw()
+        name.add_single(active_card)
+
+print("Your Hand:", [str(card) for card in hand1._cards])
+print("Face-up Cards:", [str(card) for card in faceup1._cards])
+print("Dekk:", dekk.cards_left)
+print(" ")
+
+#playing a card on the trick
+while True:
+    chosencard = input("Which card do you want to play?")
+    if hand1.card_exists(chosencard):
+        hand1.draw_specific(chosencard)
+        trick.add_single(chosencard)
+        if hand1.cards_left < 3:
+            newcard = dekk.draw()
+            hand1.add_single(newcard)
+        break
+    else:
+        print("That card is not in your hand.")
+print(" ")
+
+print("Trick Thickness", trick.cards_left)
+print("Last card on Trick:", trick._cards)
+print("Dekk:", dekk.cards_left)
+print("Your Hand:", [str(card) for card in hand1._cards])
+print(" ")
+
