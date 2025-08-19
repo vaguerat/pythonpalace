@@ -1,0 +1,87 @@
+import pyCardDeck
+import random
+
+suits = ["H", "D", "C", "S"]
+ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+pack = [f"{r}{s}" for r in ranks for s in suits]
+maindeck = pyCardDeck.Deck(cards = pack, reshuffle=False)
+print("Deck Remaining:", maindeck.cards_left)
+
+discard_pile, trick, hand1, clanker_cards, faceup1, faceup2, facedown1, facedown2, = [pyCardDeck.Deck(cards=[], reshuffle=False) for _ in range(8)]
+print("Trick Thickness:", trick.cards_left)
+print('Last card on Trick:', trick._cards)
+print(" ")
+
+input("PRESS ENTER TO SHUFFLE DECK AND DEAL")
+maindeck.shuffle()
+print("Shuffling Deck--Dealing Cards")
+print(" ")
+
+for _ in range(3):
+    D = [hand1, clanker_cards, faceup1, faceup2, facedown1, facedown2]
+    for name in D:
+        active_card = maindeck.draw()
+        name.add_single(active_card)
+
+print("Deck Remaining:", maindeck.cards_left)
+print("Your Hand:", hand1._cards)
+print("Your Face-up Cards:", faceup1._cards)
+print("Your Face-down Cards:", "?, ?, ?")
+print(" ")
+
+superiority = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
+def discover_rank(card):
+    return card[:-1]
+
+while True:
+    chosencard = input("Which card do you want to play? enter like 7H or KC:")
+    if hand1.card_exists(chosencard):
+        if trick.cards_left > 0:
+            rank_in_question = discover_rank(chosencard)
+            trick_top = trick.show_top(1)
+            trick_rank = discover_rank(trick_top)
+            if superiority[rank_in_question] >= superiority[trick_rank]:
+                hand1.draw_specific(chosencard)
+                trick.add_single(chosencard)
+            else:
+                print("illegal card you dumb bitch")
+                continue
+        else:
+            hand1.draw_specific(chosencard)
+            trick.add_single(chosencard)
+        while hand1.cards_left < 3:
+            newcard = maindeck.draw()
+            hand1.add_single(newcard)
+        break
+    else:
+        print("That card is not in your hand.")
+print(" ")
+
+print("Deck Remaining:", maindeck.cards_left)
+print("Trick Thickness:", trick.cards_left)
+print("Last card on Trick:", trick._cards)
+print("Your Hand:", hand1._cards)
+print(" ")
+
+trick_top = trick.show_top(1)
+def clanker_choices(clanker_cards, trick_top):
+    valid = []
+    for card in clanker_cards:
+        #2 is always legal
+        if card[-1] == 2:
+            valid.append(card)
+        elif card[-1] == 10:
+            valid.append(card)
+        elif superiority[card[-1]] < superiority[trick_top[-1]]:
+            valid.append(card)
+    return valid
+
+clanker_choices(clanker_cards, trick_top)
+print(clanker_choices)
+clanker_decision = random.choice(valid)
+clanker_cards.draw_specific(clanker_decision)
+trick.add_single(clanker_decision)
+
+while clanker_cards.cards_left < 3:
+    newcard = maindeck.draw
+    clanker_cards.add_single(newcard)
