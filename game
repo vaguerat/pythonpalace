@@ -1,63 +1,187 @@
-
 import pyCardDeck
-from pyCardDeck import Deck, deck
-from pyCardDeck.cards import PokerCard
+import random
 
-#awful card creation i gotta do this better
-suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
-ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9","10", "Jack", "Queen", "King"]
+suits = ["S", "D", "C", "H"]
+ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+pack = [f"{r}{s}" for r in ranks for s in suits]
+maindeck = pyCardDeck.Deck(cards = pack, reshuffle=False)
+print("Deck Remaining:", maindeck.cards_left)
 
-cards = [PokerCard(name=f"{rank}", suit=suit, rank=rank) for suit in suits for rank in ranks]
-cards2 = list(cards)
-dekk = pyCardDeck.Deck(cards=cards2, name='THE CARDS THE CARDS THE CARDS WILL TELL', reshuffle=False)
+discard_pile, trick, hand1, clanker_cards, faceup1, faceup2, facedown1, facedown2, = [pyCardDeck.Deck(cards=[], reshuffle=False) for _ in range(8)]
 
-print("Dekk:", dekk.cards_left)
-discard_pile = dekk.discard(cards)
-print("Discard Pile:", discard_pile)
-trick = pyCardDeck.Deck(cards=[], name='Trick', reshuffle=False)
+trick_rank = -1
+
+players_turn = True
+
+
 print("Trick Thickness:", trick.cards_left)
-print('Last card on Trick:', [str(cards) for cards in trick._cards])
-
-#create the 6 decks of cards
-hand1, hand2, faceup1, faceup2, facedown1, facedown2, = [pyCardDeck.Deck(cards=[], reshuffle=False) for _ in range(6)]
-print("Your Hand:", hand1._cards)
+print('Last card on Trick:', trick._cards)
 print(" ")
 
 input("PRESS ENTER TO SHUFFLE DECK AND DEAL")
-print(" ")
-dekk.shuffle()
-print("Shuffling Deck")
+maindeck.shuffle()
+print("Shuffling Deck--Dealing Cards")
 print(" ")
 
-#dealing cards
 for _ in range(3):
-    D = [hand1, hand2, faceup1, faceup2, facedown1, facedown2]
+    D = [hand1, clanker_cards, faceup1, faceup2, facedown1, facedown2]
     for name in D:
-        active_card = dekk.draw()
-        name.add_single(active_card)
+        name.add_single(maindeck.draw())
 
-print("Your Hand:", [str(card) for card in hand1._cards])
-print("Face-up Cards:", [str(card) for card in faceup1._cards])
-print("Dekk:", dekk.cards_left)
+print("Deck Remaining:", maindeck.cards_left)
+print("Your Hand:", hand1._cards)
+print("Your Face-up Cards:", faceup1._cards)
+print("Your Face-down Cards:", "?, ?, ?")
 print(" ")
 
-#playing a card on the trick
-while True:
-    chosencard = input("Which card do you want to play?")
-    if hand1.card_exists(chosencard):
-        hand1.draw_specific(chosencard)
-        trick.add_single(chosencard)
-        if hand1.cards_left < 3:
-            newcard = dekk.draw()
-            hand1.add_single(newcard)
-        break
+superiority = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '1': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
+def discover_rank(card):
+    return card[0]
+
+def valid_choices(cards, trick_top):
+    valid = []
+    if trick_top == "":
+        return cards._cards
+    for card in cards:
+        if (card[0]) == '2':
+            valid.append(card)
+        elif (card[0]) == '1':
+            valid.append(card)
+        elif (card[0]) == '4':
+            valid.append(card)
+        elif superiority[card[0]] >= trick_rank:
+            valid.append(card)
+    return valid
+
+def update_rank(card, old_rank):
+    if card[0] not in ['1', '2', '4']:
+        rank = superiority[card[0]]
+    elif card[0] == '2':
+        for _ in range(trick.cards_left):
+            discard_pile.add_single(trick.draw())
+        rank = 0
+    elif card[0] == '1':
+        rank = 0
     else:
-        print("That card is not in your hand.")
-print(" ")
+        rank = old_rank
 
-print("Trick Thickness", trick.cards_left)
-print("Last card on Trick:", trick._cards)
-print("Dekk:", dekk.cards_left)
-print("Your Hand:", [str(card) for card in hand1._cards])
-print(" ")
+    print('Rank:', rank)
+
+    return rank
+
+
+
+while True:
+    if players_turn:
+
+        if trick.cards_left == 0:
+            trick_top = ""
+        else:
+            trick_top = trick.show_top(1)[0]
+        player_valid = valid_choices(hand1, trick_top)
+
+        print("Deck Remaining:", maindeck.cards_left)
+        print("Trick Thickness:", trick.cards_left)
+        print("Last card on Trick:", trick_top)
+        print("Your Hand:", hand1._cards)
+        print("The trick:", trick._cards)
+
+        if len(player_valid) == 0:
+            print("You must take the trick.")
+            for _ in range(trick.cards_left):
+                hand1.add_single(trick.draw())
+            print("Your Hand:", hand1._cards)
+
+
+        chosencard = input("Which card do you want to play? enter like 7H or KC:")
+        if chosencard == 'P':
+            for _ in range(trick.cards_left):
+                hand1.add_single(trick.draw())
+            trick_rank = 0
+            continue
+
+        if hand1.card_exists(chosencard):
+            if trick.cards_left > 0:
+                rank_in_question = discover_rank(chosencard)
+                trick_top = trick.show_top(1)[0]
+                if superiority[rank_in_question] >= trick_rank or chosencard[0] in ['2', '1', '4']:
+                    hand1.draw_specific(chosencard)
+                    trick.add_single(chosencard, 0)
+                    trick_rank = update_rank(chosencard, trick_rank)
+
+                else:
+                    print("illegal card you dumb bitch")
+                    continue
+            else:
+                hand1.draw_specific(chosencard)
+                trick.add_single(chosencard, 0)
+                trick_rank = update_rank(chosencard, trick_rank)
+            while hand1.cards_left < 3 and maindeck.cards_left > 0:
+                hand1.add_single(maindeck.draw())
+
+            if hand1.cards_left == 0:
+                if faceup1.cards_left != 0:
+                    for _ in range(faceup1.cards_left):
+                        hand1.add_single(faceup1.draw())
+                elif facedown1.cards_left != 0:
+                    hand1.add_single(facedown1.draw())
+                else:
+                    print("You WIN!")
+                    break
+
+
+        else:
+            print("That card is not in your hand.")
+            continue
+
+    if trick_rank != 0:
+        players_turn = False
+
+    if not players_turn:
+        print(" ")
+        if trick.cards_left == 0:
+            trick_top = ""
+        else:
+            trick_top = trick.show_top(1)[0]
+
+        print("Deck Remaining:", maindeck.cards_left)
+        print("Trick Thickness:", trick.cards_left)
+        print("Last card on Trick:", trick.show_top(1))
+        print(" ")
+
+        valid = valid_choices(clanker_cards, trick_top)
+        if len(valid) == 0:
+            trick_top = ""
+            for _ in range(trick.cards_left):
+                clanker_cards.add_single(trick.draw())
+            print(trick._cards)
+            print("Clanker takes trick.")
+            valid = valid_choices(clanker_cards, trick_top)
+            print(valid)
+        clanker_decision = random.choice(valid)
+        priority = '214AKQJ987653'
+        for c in priority:
+            for card in valid:
+                if card[0] == c:
+                    clanker_decision = card
+
+        clanker_cards.draw_specific(clanker_decision)
+        print("clanker plays ", clanker_decision)
+        trick.add_single(clanker_decision, 0)
+        trick_rank = update_rank(clanker_decision, trick_rank)
+        while clanker_cards.cards_left < 3 and maindeck.cards_left > 0:
+            clanker_cards.add_single(maindeck.draw())
+
+        if clanker_cards.cards_left == 0:
+            if faceup2.cards_left != 0:
+                for _ in range(faceup2.cards_left):
+                    clanker_cards.add_single(faceup2.draw())
+            elif facedown2.cards_left != 0:
+                clanker_cards.add_single(facedown2.draw())
+            else:
+                print("You LOSE!")
+                break
+
+        if trick_rank != 0:
+            players_turn = True
 
